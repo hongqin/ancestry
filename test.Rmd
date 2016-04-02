@@ -1,0 +1,58 @@
+---
+title: "test 23andme"
+author: "h qin"
+date: "April 2, 2016"
+output: html_document
+---
+
+See
+http://www.vincebuffalo.com/blog/2012/03/12/using-bioconductor-to-analyze-your-23andme-data.html
+
+```{r}
+rm(list=ls())
+setwd("~/github/ancestry")
+library(gwascat)
+library(ggplot2)
+list.files(path='data')
+d <- read.table("data/genome_Full_20160207194004.txt",
+               sep="\t", header=FALSE,
+               colClasses=c("character", "character", "numeric", "character"),
+               col.names=c("rsid", "chrom", "position", "genotype"))
+```
+
+
+```{r}
+tmp <- d$chrom
+d$chrom = ordered(d$chrom, levels=c(seq(1, 22), "X", "Y", "MT"))
+## It's never a bad idea to check your work
+stopifnot(all(as.character(tmp) == as.character(d$chrom)))
+ggplot(d) + geom_bar(aes(chrom))
+
+```
+
+```{r}
+## try http:// if https:// URLs are not supported
+#source("https://bioconductor.org/biocLite.R")
+# biocLite("TxDb.Hsapiens.UCSC.hg18.knownGene")
+library(TxDb.Hsapiens.UCSC.hg18.knownGene)
+txdb <- TxDb.Hsapiens.UCSC.hg18.knownGene
+class(txdb) ## do some digging around!
+transcripts(txdb)
+tx.by.gene <- transcriptsBy(txdb, "gene")
+tx.by.gene
+```
+
+```{r}
+require(org.Hs.eg.db)
+str(org.Hs.eg.db)
+#select(org.Hs.eg.db, keys="APOE", cols=c("ENTREZID", "SYMBOL", "GENENAME"), keytype="SYMBOL")
+
+tx.by.gene["348"]
+my.snps <- with(d, GRanges(seqnames=chrom, 
+                   IRanges(start=position, width=1), 
+                   rsid=rsid, genotype=genotype)) # this goes into metadata
+
+apoe.i <- findOverlaps(tx.by.gene["348"], my.snps)
+
+```
+
